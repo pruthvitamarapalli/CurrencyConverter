@@ -12,24 +12,31 @@ import com.example.currency.model.CurrencyConverter;
 public class CurrencyService {
 	
 	private final RestTemplate restTemplate;
-    private static final String API_URL = "https://api.exchangerate-api.com/v4/latest/";
+    private static final String API_URL = "http://api.exchangeratesapi.io/v1/latest?access_key=YOUR_ACCESS_KEY";
 
     public CurrencyService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
 
     public Map<String, Double> fetchExchangeRates(String base) {
-    	String url = API_URL + base;
+        String url = API_URL + "&base=" + base;
         Map<String, Object> response = restTemplate.getForObject(url, Map.class);
         
-        Map<String, Object> rawRates = (Map<String, Object>) response.get("rates"); // Raw response
-        Map<String, Double> exchangeRates = new HashMap<>();
+        Object ratesObject = response.get("rates");
 
-        for (Map.Entry<String, Object> entry : rawRates.entrySet()) {
-            exchangeRates.put(entry.getKey(), ((Number) entry.getValue()).doubleValue()); // Convert to Double
+        if (ratesObject instanceof Map) {
+            Map<String, Object> ratesMap = (Map<String, Object>) ratesObject;
+            Map<String, Double> rates = new HashMap<>();
+
+            for (Map.Entry<String, Object> entry : ratesMap.entrySet()) {
+                if (entry.getValue() instanceof Number) {
+                    rates.put(entry.getKey(), ((Number) entry.getValue()).doubleValue());
+                }
+            }
+            return rates;
         }
 
-        return exchangeRates;
+        return new HashMap<>();
     }
 
     public Map<String, Object> convertCurrency(CurrencyConverter request) {
